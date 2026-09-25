@@ -483,8 +483,14 @@ For domain-specific detailed security control specifications:
 - [`docs/design/security-identity-credentials.md`](../design/security-identity-credentials.md) — Tiered Credentials, Stash Mode & Keyring Integration.
 - [`docs/design/security-access.md`](../design/security-access.md) — Tool Privilege Gating & Sudoers Execution.
 - [`docs/design/security-policy.md`](../design/security-policy.md) — Command Approval, Password Policies & ACTLOG Audit Trail.
-- [`docs/design/security-integrations.md`](../design/security-integrations.md) — OAuth 2.1 / OIDC HTTP Transport & Secrets Reference Resolution.
+- [`docs/design/security-integrations.md`](../design/security-integrations.md) — OAuth 2.1 / OIDC HTTP Transport (resource-server baseline) & Secrets Reference Resolution.
+- [`docs/design/security-oauth2.md`](../design/security-oauth2.md) — OAuth 2 Authorization extension: AS metadata endpoint (OA-1), JWKS key rotation (OA-2), Authorization Code + PKCE (OA-3/OA-4), token introspection (OA-5), RFC 9470 protected-resource metadata (OA-6), and auth-model audit attribution (OA-7).
 - [`docs/design/security-non-repudiation.md`](../design/security-non-repudiation.md) — Non-Repudiation, Activity Log Attribution & Forensic Correlation.
+
+Security analysis documents (gap findings and control validation):
+- [`docs/analysis/security-design-analysis.md`](../analysis/security-design-analysis.md) — Comprehensive cross-domain analysis; 88 regression tests passing.
+- [`docs/analysis/security-dynamic-authn-analysis.md`](../analysis/security-dynamic-authn-analysis.md) — Dynamic auth challenge-response gap analysis.
+- [`docs/analysis/security-oauth2-analysis.md`](../analysis/security-oauth2-analysis.md) — OAuth 2 gap analysis; 7 open gaps (OA-1 through OA-7).
 
 ---
 
@@ -533,7 +539,8 @@ storage-protect-mcp-server/
 
 ## 16. Future Enhancements
 
-1. **Command Result Caching**: Cache query results for frequently accessed data with TTL-based invalidation.
-2. **Batch Operations**: Multi-command transactions with atomic rollback support.
-3. **Advanced Monitoring**: Real-time metrics streaming and alerting integration.
-4. **High Availability**: Failover support, load balancing across SP server replicas, and state synchronization.
+1. **OAuth 2 Authorization Server Compliance (OA-1 through OA-7)**: Fully close the seven OAuth 2 gaps identified in [`docs/analysis/security-oauth2-analysis.md`](../analysis/security-oauth2-analysis.md) — AS metadata endpoint, JWKS key rotation, PKCE, token introspection, RFC 9470 resource metadata, and auth-model ACTLOG attribution.
+2. **Command Result Caching**: Cache query results for frequently accessed data with TTL-based invalidation.
+3. **Batch Operations**: Multi-command transactions with atomic rollback support.
+4. **Advanced Monitoring**: Real-time metrics streaming and alerting integration.
+5. **High Availability**: Failover support, load balancing across SP server replicas, and state synchronization.

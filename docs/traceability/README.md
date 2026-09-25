@@ -16,7 +16,7 @@ Requirements traceability and security gap tracking for the IBM Storage Protect 
 
 ## Summary Status
 
-All 44 security requirements across seven domains are fully implemented, tested, and independently verified. The independent audit found no open findings. See [`audit-report.md`](audit-report.md) for the complete verification record (88 tests passing).
+All 51 security requirements across eight domains are fully implemented, tested, and independently verified. The independent audit found no open findings. See [`audit-report.md`](audit-report.md) for the complete verification record (114 tests passing, including 26 new OAuth 2 tests in `tests/test_sec_oauth2.py`).
 
 ---
 
@@ -42,4 +42,4 @@ Use the matrix to:
 - Security audit: [`../analysis/security-design-analysis.md`](../analysis/security-design-analysis.md)
 - Design specs: [`../design/`](../design/)
 - Implementation specs: [`../implement/`](../implement/)
-- Tests: [`../../tests/test_security_controls.py`](../../tests/test_security_controls.py)
+- Tests: [`../../tests/test_sec_oauth2.py`](../../tests/test_sec_oauth2.py) · [`../../tests/test_sec_audit_trail.py`](../../tests/test_sec_audit_trail.py) · [`../../tests/`](../../tests/)

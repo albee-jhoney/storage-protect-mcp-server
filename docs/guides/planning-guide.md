@@ -4,6 +4,30 @@ This guide helps you plan your IBM Storage Protect MCP Server deployment **befor
 
 ---
 
+## Table of Contents
+
+- [Step 1 — Choose a Deployment Topology](#step-1--choose-a-deployment-topology)
+  - [Topology A — Co-located](#topology-a--co-located)
+  - [Topology B — Centralised](#topology-b--centralised)
+  - [Topology comparison](#topology-comparison)
+- [Step 2 — Choose an Authentication Model](#step-2--choose-an-authentication-model)
+  - [Authentication Models Comparison](#authentication-models-comparison)
+- [Step 3 — Inventory Your SP Servers](#step-3--inventory-your-sp-servers)
+- [Step 4 — Prerequisites Checklist](#step-4--prerequisites-checklist)
+  - [Topology A — prerequisites per SP server host](#topology-a--prerequisites-per-sp-server-host)
+  - [Topology B — prerequisites on the control host](#topology-b--prerequisites-on-the-control-host)
+  - [Common prerequisites (both topologies)](#common-prerequisites-both-topologies)
+- [Step 4 — Plan Your Service Accounts](#step-4--plan-your-service-accounts)
+- [Step 5 — Plan Your `dsm.sys` SERVERNAME Labels](#step-5--plan-your-dsmsys-servername-labels)
+- [Step 6 — Plan Your SSH Keys](#step-6--plan-your-ssh-keys)
+- [Step 7 — Plan Your MCP Client Configuration Entry Names](#step-7--plan-your-mcp-client-configuration-entry-names)
+- [Step 8 — Plan Your Tool Scope per SP Server](#step-8--plan-your-tool-scope-per-sp-server)
+- [Step 9 — Pre-Installation Sign-off](#step-9--pre-installation-sign-off)
+- [Next Steps](#next-steps)
+- [Related Documentation](#related-documentation)
+
+---
+
 ## Step 1 — Choose a Deployment Topology
 
 The MCP server is a **one-process-to-one-SP-server** unit. Before installing anything, decide where those processes will run.

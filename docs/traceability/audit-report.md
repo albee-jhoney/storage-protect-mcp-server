@@ -1,22 +1,36 @@
 # Independent Project Audit Report
 
-* **Audit scope**: Documentation, source code, tests, and packaging metadata in the working tree (`dev-secure-mcp` branch)
-* **Audit date**: 2026-09 (independent re-audit; post-remediation state)
-* **Assessment focus**: Consistency, correctness, and completeness across the full document and source corpus
-* **Method**: Static cross-reference of all docs layers (analysis → design → implementation → traceability), source code review, live test execution against the `.venv-audit` environment; no IBM Storage Protect server or live OIDC identity provider was available for runtime validation
-* **Test result**: **88 passed** (`88 passed in 3.90s`)
+* **Audit scope**: Documentation, source code, tests, and packaging metadata in the working tree (`dev-secure-mcp-1` branch)
+* **Audit date**: 2026-10 (OAuth 2 design addendum; post-remediation baseline unchanged)
+* **Assessment focus**: Consistency, correctness, and completeness across the full document and source corpus; OAuth 2 design layer cross-reference added
+* **Method**: Static cross-reference of all docs layers (analysis → design → implementation → traceability), source code review; no IBM Storage Protect server or live OIDC identity provider was available for runtime validation
+* **Test result**: **88 passed** (`88 passed in 3.90s`) — no new tests; OA-1–OA-7 source integration is pending
 
 ---
 
 ## 1. Executive Summary
 
-The project is in a **strong, well-documented, fully-remediated state**. All security controls across all seven domains — network security, identity & credentials, access management, policy management, secure integrations, non-repudiation, and dynamic authentication — are consistently documented from analysis through design, implementation specification, traceability matrix, and automated test. No open findings remain.
+The project is in a **strong, well-documented state**. All security controls across the seven established domains — network security, identity & credentials, access management, policy management, secure integrations, non-repudiation, and dynamic authentication — are consistently documented from analysis through design, implementation specification, traceability matrix, and automated test. No open findings remain on those domains.
+
+An eighth domain, **OAuth 2 Extended Middleware (OA)**, has been fully designed and specified in this cycle. Seven requirements (OA-1 through OA-7) are now registered in the traceability matrix with complete design docs, gap analysis, and implementation specifications. Source code integration into `http_server.py`, `mcp_factory.py`, `main.py`, and `commands/system/auth.py` is the next implementation phase. These items are recorded as design-layer open items, not as audit findings against the existing implementation.
 
 ---
 
 ## 2. Active Findings
 
-No open findings.
+No open findings against the existing implementation.
+
+**Registered design-layer items (not audit findings):**
+
+| Item | Description | Status |
+|:---|:---|:---:|
+| OA-1 | AS metadata endpoint (`/.well-known/oauth-authorization-server`) | 🔲 Design Complete |
+| OA-2 | JWKS TTL cache + `kid`-miss rate-limited re-fetch | 🔲 Design Complete |
+| OA-3 | Authorization Code + PKCE token claim profile validation | 🔲 Design Complete |
+| OA-4 | IdP PKCE capability startup check | 🔲 Design Complete |
+| OA-5 | Optional RFC 7662 token introspection | 🔲 Design Complete |
+| OA-6 | RFC 9470 protected resource metadata + `WWW-Authenticate` `resource_metadata` | 🔲 Design Complete |
+| OA-7 | `authmodel` field in ACTLOG `DEFINE SCRATCHPADENTRY` | 🔲 Design Complete |
 
 ---
 
@@ -101,7 +115,7 @@ All controls listed below are implemented in source, regression-tested, and conf
 |:---|:---|
 | Test suite result | **88 passed** (`88 passed in 3.90s`) |
 | Test suite version | Python 3.13.3, pytest 9.1.1 |
-| Open findings | **None** |
+| Open findings | **None** (7 OA design-layer items are not findings — source integration pending) |
 | Runtime validation | No IBM Storage Protect server or live OIDC identity provider available; live-system behaviour unverified |
 | Traceability cross-reference | [`docs/traceability/gap-analysis.md`](gap-analysis.md) · [`docs/traceability/traceability-matrix.md`](traceability-matrix.md) |
 
@@ -111,11 +125,11 @@ All controls listed below are implemented in source, regression-tested, and conf
 
 | Layer | Files Reviewed |
 |:---|:---|
-| **Analysis** | `docs/analysis/security-design-analysis.md`, `docs/analysis/security-dynamic-authn-analysis.md` |
-| **Design** | `docs/design/security-access.md`, `security-dynamic-authn.md`, `security-identity-credentials.md`, `security-integrations.md`, `security-network.md`, `security-non-repudiation.md`, `security-policy.md` |
-| **Implementation** | `docs/implement/impl-security-access.md`, `impl-security-dynamic-authn.md`, `impl-security-identity-credentials.md`, `impl-security-integrations.md`, `impl-security-network.md`, `impl-security-non-repudiation.md`, `impl-security-policy.md` |
+| **Analysis** | `docs/analysis/security-design-analysis.md`, `docs/analysis/security-dynamic-authn-analysis.md`, `docs/analysis/security-oauth2-analysis.md` |
+| **Design** | `docs/design/security-access.md`, `security-dynamic-authn.md`, `security-identity-credentials.md`, `security-integrations.md`, `security-network.md`, `security-non-repudiation.md`, `security-oauth2.md`, `security-policy.md` |
+| **Implementation** | `docs/implement/impl-security-access.md`, `impl-security-dynamic-authn.md`, `impl-security-identity-credentials.md`, `impl-security-integrations.md`, `impl-security-network.md`, `impl-security-non-repudiation.md`, `impl-security-oauth2.md`, `impl-security-policy.md` |
 | **Architecture** | `docs/architecture/architecture.md`, `module-clients.md`, `module-operations.md`, `module-policies.md`, `module-storage.md`, `module-system.md` |
-| **Guides** | `docs/guides/planning-guide.md`, `install-guide.md`, `configure-guide.md`, `user-guide.md`, `troubleshoot.md` |
+| **Guides** | `docs/guides/planning-guide.md`, `install-guide.md`, `configure-guide.md`, `local-idp-oauth2-guide.md`, `user-guide.md`, `troubleshoot.md` |
 | **Traceability** | `docs/traceability/traceability-matrix.md`, `gap-analysis.md` |
 | **Source** | `src/sp_mcp_server/session.py`, `commands/system/auth.py`, `cli_wrapper.py`, `mcp_factory.py`, `config.py`, `http_server.py`, all `main*.py` entry points |
 | **Tests** | `tests/test_security_controls.py`, `test_cli_wrapper.py`, `test_commands.py`, `test_config.py`, `test_core_components.py` |

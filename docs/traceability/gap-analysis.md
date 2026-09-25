@@ -1,20 +1,20 @@
 # IBM Storage Protect MCP Server — Gap Analysis
 
-* **Revision**: 2026-09 (Post-Audit Remediation — AUD-07, AUD-08, DAUTH-7 Closed)
-* **Cross-reference**: [`docs/traceability/traceability-matrix.md`](traceability-matrix.md) · [`docs/analysis/security-design-analysis.md`](../analysis/security-design-analysis.md) · [`docs/traceability/audit-report.md`](audit-report.md)
+* **Revision**: 2026-10 (OAuth 2 implementation complete — OA-1 through OA-7 closed)
+* **Cross-reference**: [`docs/traceability/traceability-matrix.md`](traceability-matrix.md) · [`docs/analysis/security-design-analysis.md`](../analysis/security-design-analysis.md) · [`docs/analysis/security-oauth2-analysis.md`](../analysis/security-oauth2-analysis.md) · [`docs/traceability/audit-report.md`](audit-report.md)
 * **Source reference**: `src/sp_mcp_server/` · `tests/`
 
 ---
 
 ## 1. Executive Summary
 
-All audit findings have been remediated. All 20 historical security gaps, 7 post-implementation residual gaps (RG-1 through RG-7), 5 Non-Repudiation gaps (NR-1 through NR-5), and all Dynamic Authentication (DAUTH) items are now closed.
+All audit findings have been remediated. All 20 historical security gaps, 7 post-implementation residual gaps (RG-1 through RG-7), 5 Non-Repudiation gaps (NR-1 through NR-5), all Dynamic Authentication (DAUTH) items, and all 7 OAuth 2 Extended Middleware (OA-1 through OA-7) items are now closed.
 
 Post-remediation additions: CRED-5 (idempotent SP service account provisioning script — AUD-07), DAUTH-8 (credential lifecycle zeroing on all removal paths — AUD-08), and DAUTH-9 (`logout_session` explicit revocation tool — AUD-08). DAUTH-7 (target-server binding) is fully implemented via `_check_session_target_server()` in `mcp_factory.py` and covered by 6 regression tests.
 
-**Test suite total: 88 passing** (75 at prior revision; +7 AUD-08 credential-lifecycle tests, +6 DAUTH-7 target-server binding tests).
+**Test suite total: 114 passing** (88 at prior revision; +26 OAuth 2 tests in `tests/test_sec_oauth2.py` covering OA-1 through OA-7).
 
-**No open items remain.**
+**OA implementation (2026-10):** OA-1 through OA-7 are fully implemented and tested. Source files: `src/sp_mcp_server/http_server.py` (AS metadata proxy, JWKS TTL cache + kid-miss rate-limit, PKCE capability check, RFC 7662 introspection, RFC 9470 resource metadata, `authmodel` detection), `src/sp_mcp_server/mcp_factory.py` (`current_auth_model` ContextVar, `authmodel=` in ACTLOG record), `src/sp_mcp_server/main.py` (new env var ingestion, OA-4 startup call), `src/sp_mcp_server/commands/system/auth.py` (`dynamic_session` label on lease issue).
 
 ---
 
@@ -30,7 +30,8 @@ Post-remediation additions: CRED-5 (idempotent SP service account provisioning s
 | **6. Non-Repudiation & Forensics** | 5 | 5 | **0** | ✅ Fully Compliant (User Identity Binding, Fail-Closed Audit, ISO 8601 UTC) |
 | **Post-Implementation Residuals (RG)** | 7 | 7 | **0** | ✅ Fully Compliant (Production Guards, Silent Execution, Automated Tests) |
 | **7. Dynamic Authentication (DAUTH)** | 11 | 11 | **0** | ✅ Fully Compliant (Challenge-Response, TTL, Privilege, Delegation, Credential Lifecycle, Target-Server Binding) |
-| **Total** | **44** | **44** | **0** | **100% Resolved — 88/88 Tests Passing** |
+| **8. OAuth 2 Extended Middleware (OA)** | 7 | 7 | **0** | ✅ Fully Compliant (AS Metadata RFC 8414, JWKS TTL Rotation, PKCE Capability Check, RFC 7662 Introspection, RFC 9470 Resource Metadata, `authmodel` Audit Binding) |
+| **Total** | **51** | **51** | **0** | **100% Resolved — 114/114 Tests Passing** |
 
 ---
 
@@ -96,6 +97,19 @@ Post-remediation additions: CRED-5 (idempotent SP service account provisioning s
   - `_check_session_target_server()` enforces `SessionLease.target_server` binding; sessions authenticated against one server stanza are rejected with `AUTHORIZATION_DENIED` if reused against a different one (**DAUTH-7**). Single-server deployments skip the check.
   - `SessionLease.password` is set to `None` on every removal path — `revoke_session()`, expiry in `get_session()`, bulk `cleanup_expired()`, and `clear()` at shutdown (**DAUTH-8** / AUD-08).
   - `LogoutSession` tool (`logout_session`, `required_privilege: any`) allows users to explicitly revoke their session, zeroing the in-memory credential and clearing audit context variables (**DAUTH-9** / AUD-08).
+
+### 3.8 Domain 8: OAuth 2 Extended Middleware (OA)
+- **Status**: 7 Open Gaps — design complete, source implementation pending.
+- **Open Items** (OA-1 through OA-7):
+  - **OA-1**: No `/.well-known/oauth-authorization-server` endpoint exists in `http_server.py`. The `_fetch_as_metadata()` function and `as_metadata` route must be added. Design: [`security-oauth2.md § OA-1`](../design/security-oauth2.md). Spec: [`impl-security-oauth2.md § OA-1`](../implement/impl-security-oauth2.md).
+  - **OA-2**: Current `OIDCBearerMiddleware._get_jwks()` is a one-shot fetch with no TTL, no `kid`-miss re-fetch, and no DoS rate-limit. Replace with module-level `_get_jwks_with_ttl()` and `_get_key_for_kid()`. Design: [`security-oauth2.md § OA-2`](../design/security-oauth2.md). Spec: [`impl-security-oauth2.md § OA-2`](../implement/impl-security-oauth2.md).
+  - **OA-3**: No claim-profile validation for Authorization Code + PKCE tokens — `preferred_username`, `email`, `name` not verified; `scope` overlap not checked. Design: [`security-oauth2.md § OA-3`](../design/security-oauth2.md). Spec: [`impl-security-oauth2.md § OA-3`](../implement/impl-security-oauth2.md).
+  - **OA-4**: No startup check for IdP PKCE capability. Add `_check_idp_pkce_capability()` called from `main.py` after `SP_OIDC_ISSUER` validation. Design: [`security-oauth2.md § OA-4`](../design/security-oauth2.md). Spec: [`impl-security-oauth2.md § OA-4`](../implement/impl-security-oauth2.md).
+  - **OA-5**: No optional RFC 7662 token introspection path. Add `_introspect()` activated when `SP_OIDC_INTROSPECTION_ENDPOINT` is set. Design: [`security-oauth2.md § OA-5`](../design/security-oauth2.md). Spec: [`impl-security-oauth2.md § OA-5`](../implement/impl-security-oauth2.md).
+  - **OA-6**: No `/.well-known/oauth-protected-resource` route (RFC 9470); `WWW-Authenticate` on 401 does not include `resource_metadata` URI. Add `_protected_resource_doc()` and update `_unauthorized()`. Design: [`security-oauth2.md § OA-6`](../design/security-oauth2.md). Spec: [`impl-security-oauth2.md § OA-6`](../implement/impl-security-oauth2.md).
+  - **OA-7**: ACTLOG `DEFINE SCRATCHPADENTRY` description does not include an `authmodel` field. Add `current_auth_model` ContextVar; detect `client_credentials` vs `oidc_bearer` via `preferred_username` claim presence. Design: [`security-oauth2.md § OA-7`](../design/security-oauth2.md). Spec: [`impl-security-oauth2.md § OA-7`](../implement/impl-security-oauth2.md).
+- **Files to change**: `src/sp_mcp_server/http_server.py`, `src/sp_mcp_server/mcp_factory.py`, `src/sp_mcp_server/main.py`, `src/sp_mcp_server/commands/system/auth.py`.
+- **Test cases required**: 14 named test cases defined in [`impl-security-oauth2.md § 6`](../implement/impl-security-oauth2.md) under `TestOAuth2Middleware`.
 
 ---
 

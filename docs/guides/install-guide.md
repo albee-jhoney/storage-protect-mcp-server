@@ -6,6 +6,37 @@ This guide covers the topology-specific installation steps for the IBM Storage P
 
 ---
 
+## Table of Contents
+
+- [Part 1 — OS User Setup](#part-1--os-user-setup)
+  - [Topology A — Co-located](#topology-a--co-located)
+  - [Topology B — Centralised](#topology-b--centralised)
+- [Part 2 — Python Environment](#part-2--python-environment)
+- [Part 3 — Install the Package](#part-3--install-the-package)
+- [Part 4 — `.env` Configuration File](#part-4---env-configuration-file)
+  - [Topology A — one `.env` per SP server host](#topology-a--one-env-per-sp-server-host)
+  - [Topology B — one `.env` per SP server subdirectory, on the control host](#topology-b--one-env-per-sp-server-subdirectory-on-the-control-host)
+  - [Minimum `.env` for a single read-only service account](#minimum-env-for-a-single-read-only-service-account)
+  - [Full `.env` — per-privilege service accounts (recommended for production)](#full-env--per-privilege-service-accounts-recommended-for-production)
+  - [Complete environment variable reference](#complete-environment-variable-reference)
+- [Part 5 — IBM SP Service Account Provisioning](#part-5--ibm-sp-service-account-provisioning)
+  - [Minimum setup (single read-only account)](#minimum-setup-single-read-only-account)
+  - [Full least-privilege setup (recommended for production)](#full-least-privilege-setup-recommended-for-production)
+- [Part 6 — `dsm.sys` TLS Configuration (NET-3)](#part-6--dsmsys-tls-configuration-net-3)
+  - [Topology A — one `dsm.sys` per SP server host](#topology-a--one-dsmsys-per-sp-server-host)
+  - [Topology B — one `dsm.sys` on the control host, one stanza per SP server](#topology-b--one-dsmsys-on-the-control-host-one-stanza-per-sp-server)
+  - [Populate the password stash (one-time per account, per SP server)](#populate-the-password-stash-one-time-per-account-per-sp-server)
+- [Part 7 — sudoers Rule for Offline Commands (Topology A only)](#part-7--sudoers-rule-for-offline-commands-topology-a-only)
+- [Part 8 — Verify the Installation](#part-8--verify-the-installation)
+  - [Topology A — on each SP server host](#topology-a--on-each-sp-server-host)
+  - [Topology B — on the control host, once per SP server subdirectory](#topology-b--on-the-control-host-once-per-sp-server-subdirectory)
+- [Post-Install Checklist](#post-install-checklist)
+  - [Topology A — repeat on each SP server host](#topology-a--repeat-on-each-sp-server-host)
+  - [Topology B — run on the control host](#topology-b--run-on-the-control-host)
+- [Related Documentation](#related-documentation)
+
+---
+
 ## Part 1 — OS User Setup
 
 ### Topology A — Co-located
