@@ -16,7 +16,7 @@ Requirements traceability and security gap tracking for the IBM Storage Protect 
 
 ## Summary Status
 
-All 51 security requirements across eight domains are fully implemented, tested, and independently verified. The independent audit found no open findings. See [`audit-report.md`](audit-report.md) for the complete verification record (114 tests passing, including 26 new OAuth 2 tests in `tests/test_sec_oauth2.py`).
+All 51 security requirements across eight domains are fully implemented, tested, and independently verified. One open finding (AUD-F-01): 3 tests in `TestDynamicAuthentication` fail under default suite ordering due to `current_audit_user` ContextVar state pollution from a preceding test; all three pass in isolation — no security control is compromised. See [`audit-report.md`](audit-report.md) for the complete verification record (114 collected; 111 passing; 26 OAuth 2 tests in `tests/test_sec_oauth2.py` all pass; 10 test files).
 
 ---
 
