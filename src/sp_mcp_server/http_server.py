@@ -117,7 +117,7 @@ async def _get_jwks_with_ttl(issuer: str, jwks_ttl: int) -> dict:
     async with httpx.AsyncClient() as client:
         resp = await client.get(jwks_uri, timeout=10)
         resp.raise_for_status()
-        _jwks_cache = resp.json()
+        _jwks_cache = dict(resp.json())
 
     _jwks_uri_cache = jwks_uri
     _jwks_fetched_at = now
@@ -258,6 +258,9 @@ class OIDCBearerMiddleware:
         token's remaining lifetime is below introspect_below_ttl.
         Fail-open: if the endpoint is unreachable, returns True (allows request).
         """
+        if not self.introspection_endpoint:
+            return True
+
         exp = payload.get("exp", 0)
         remaining = exp - time.time()
         if remaining > self.introspect_below_ttl:
