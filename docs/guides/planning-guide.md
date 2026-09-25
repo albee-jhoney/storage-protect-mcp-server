@@ -17,12 +17,12 @@ This guide helps you plan your IBM Storage Protect MCP Server deployment **befor
   - [Topology A — prerequisites per SP server host](#topology-a--prerequisites-per-sp-server-host)
   - [Topology B — prerequisites on the control host](#topology-b--prerequisites-on-the-control-host)
   - [Common prerequisites (both topologies)](#common-prerequisites-both-topologies)
-- [Step 4 — Plan Your Service Accounts](#step-4--plan-your-service-accounts)
-- [Step 5 — Plan Your `dsm.sys` SERVERNAME Labels](#step-5--plan-your-dsmsys-servername-labels)
-- [Step 6 — Plan Your SSH Keys](#step-6--plan-your-ssh-keys)
-- [Step 7 — Plan Your MCP Client Configuration Entry Names](#step-7--plan-your-mcp-client-configuration-entry-names)
-- [Step 8 — Plan Your Tool Scope per SP Server](#step-8--plan-your-tool-scope-per-sp-server)
-- [Step 9 — Pre-Installation Sign-off](#step-9--pre-installation-sign-off)
+- [Step 5 — Plan Your Service Accounts](#step-5--plan-your-service-accounts)
+- [Step 6 — Plan Your `dsm.sys` SERVERNAME Labels](#step-6--plan-your-dsmsys-servername-labels)
+- [Step 7 — Plan Your SSH Keys](#step-7--plan-your-ssh-keys)
+- [Step 8 — Plan Your MCP Client Configuration Entry Names](#step-8--plan-your-mcp-client-configuration-entry-names)
+- [Step 9 — Plan Your Tool Scope per SP Server](#step-9--plan-your-tool-scope-per-sp-server)
+- [Step 10 — Pre-Installation Sign-off](#step-10--pre-installation-sign-off)
 - [Next Steps](#next-steps)
 - [Related Documentation](#related-documentation)
 
@@ -212,7 +212,7 @@ Verify all prerequisites before starting installation. The required location dif
 
 ---
 
-## Step 4 — Plan Your Service Accounts
+## Step 5 — Plan Your Service Accounts
 
 Five IBM SP service accounts are provisioned on each SP server. Plan the account names and privilege assignments before running `scripts/provision-sp-service-accounts.sh`.
 
@@ -230,7 +230,7 @@ The same account names are reused across SP servers for consistency. They are di
 
 ---
 
-## Step 5 — Plan Your `dsm.sys` SERVERNAME Labels
+## Step 6 — Plan Your `dsm.sys` SERVERNAME Labels
 
 Each SP server needs a unique `SERVERNAME` label in `dsm.sys`. The password stash key is `SERVERNAME` + account ID — collisions cause authentication failures.
 
@@ -247,7 +247,7 @@ Use the short SP server hostname, prefixed with `SP_`, uppercased:
 
 ---
 
-## Step 6 — Plan Your SSH Keys
+## Step 7 — Plan Your SSH Keys
 
 | Topology | Keys needed | Key naming convention |
 |---|---|---|
@@ -258,7 +258,7 @@ Use the short SP server hostname, prefixed with `SP_`, uppercased:
 
 ---
 
-## Step 7 — Plan Your MCP Client Configuration Entry Names
+## Step 8 — Plan Your MCP Client Configuration Entry Names
 
 The name you give each entry in the MCP client configuration (`mcpServers`) becomes the routing key the AI agent uses to target that SP server in prompts:
 
@@ -273,7 +273,7 @@ Choose names that are:
 
 ---
 
-## Step 8 — Plan Your Tool Scope per SP Server
+## Step 9 — Plan Your Tool Scope per SP Server
 
 Each MCP client config entry can independently set `--mode` and `--enable-servers`. Plan this before configuring:
 
@@ -285,7 +285,7 @@ Each MCP client config entry can independently set `--mode` and `--enable-server
 
 ---
 
-## Step 9 — Pre-Installation Sign-off
+## Step 10 — Pre-Installation Sign-off
 
 Complete the following before moving to [`install-guide.md`](install-guide.md):
 

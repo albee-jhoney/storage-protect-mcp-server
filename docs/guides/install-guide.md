@@ -277,8 +277,16 @@ SP_MCP_SESSION_MAX_TTL=3600        # Hard session cap in seconds (default: 60m)
 | `SP_OIDC_AUDIENCE` | HTTP transport | Both | Expected `aud` claim (default `sp-mcp-server`) |
 | `SP_TLS_CERT` | HTTP transport | Both | Path to PEM TLS certificate |
 | `SP_TLS_KEY` | HTTP transport | Both | Path to PEM TLS private key |
+| `SP_MCP_PUBLIC_URL` | No | Both | Externally reachable MCP server URL — included in RFC 9470 `/.well-known/oauth-protected-resource` and `WWW-Authenticate` header (OA-6) |
+| `SP_OIDC_JWKS_TTL` | No (default `3600`) | Both | JWKS cache lifetime in seconds; set to match IdP key-rotation policy (OA-2) |
+| `SP_OIDC_INTROSPECTION_ENDPOINT` | No | Both | RFC 7662 token introspection URL; leave unset to disable (OA-5) |
+| `SP_OIDC_INTROSPECTION_CLIENT_ID` | No (default `SP_OIDC_AUDIENCE`) | Both | Client ID for introspection Basic auth (OA-5) |
+| `SP_OIDC_INTROSPECTION_CLIENT_SECRET` | No | Both | Client secret for introspection — set in `.env` (0600) or inject via secrets manager (OA-5) |
+| `SP_OIDC_INTROSPECT_BELOW_TTL` | No (default `300`) | Both | Introspect tokens with less than N seconds remaining lifetime (OA-5) |
 | `SP_MCP_ALLOW_HTTP_PLAINTEXT` | No (default `0`) | Both | `1` = allow HTTP without TLS (loopback test only) |
 | `SP_MCP_LOG_DIR` | No | Both | Log directory (default `/var/log/ibm-sp-mcp-server`) |
+
+> For full descriptions and usage examples for all HTTP transport variables, see [`configure-guide.md` — Part 2 Complete `.env` reference](configure-guide.md#complete-env-reference--http-transport-variables).
 
 ---
 

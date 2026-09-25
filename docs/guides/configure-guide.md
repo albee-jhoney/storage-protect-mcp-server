@@ -457,19 +457,21 @@ SP_OIDC_INTROSPECTION_CLIENT_ID=sp-mcp-server
 SP_OIDC_INTROSPECT_BELOW_TTL=300
 ```
 
-**Store the introspection client secret in the OS keyring — not in `.env`:**
+**Store the introspection client secret securely:**
 
-```bash
-python3 << 'EOF'
-import keyring, getpass
-keyring.set_password(
-    "ibm-sp-mcp-server",
-    "introspection-secret",
-    getpass.getpass("Introspection client secret: ")
-)
-print("Stored.")
-EOF
+`SP_OIDC_INTROSPECTION_CLIENT_SECRET` is read from the environment variable of the same name — add it to the `.env` file (already restricted to `0600`) or inject it via a secrets manager at process startup:
+
+```dotenv
+# Add to .env (permissions 600) — or inject via systemd EnvironmentFile / Vault agent sidecar
+SP_OIDC_INTROSPECTION_CLIENT_SECRET=<your-introspection-client-secret>
 ```
+
+> **Note:** Keyring-based resolution is **not** currently implemented for this variable. Unlike SP service account passwords (which use `_get_password()` / OS keyring via `config.py`), `SP_OIDC_INTROSPECTION_CLIENT_SECRET` is read only from `os.environ`. Storing it in the OS keyring will have no effect. If you require keyring storage for this credential, inject the value at process startup via a wrapper script:
+> ```bash
+> export SP_OIDC_INTROSPECTION_CLIENT_SECRET=$(python3 -c \
+>   "import keyring; print(keyring.get_password('ibm-sp-mcp-server', 'introspection-secret'), end='')")
+> python3 -m sp_mcp_server.main --transport http ...
+> ```
 
 ### Auth model audit trail
 
@@ -503,7 +505,7 @@ Use `QUERY ACTLOG SEARCH=corr=<correlation-id>` to trace a specific tool call ac
 | `SP_OIDC_JWKS_TTL` | No | `3600` | JWKS cache lifetime in seconds (OA-2) |
 | `SP_OIDC_INTROSPECTION_ENDPOINT` | No | unset | RFC 7662 introspection URL (OA-5) |
 | `SP_OIDC_INTROSPECTION_CLIENT_ID` | No | `SP_OIDC_AUDIENCE` | Introspection Basic-auth client ID (OA-5) |
-| `SP_OIDC_INTROSPECTION_CLIENT_SECRET` | No | keyring | Store in OS keyring, not `.env` (OA-5) |
+| `SP_OIDC_INTROSPECTION_CLIENT_SECRET` | No | unset | Set in `.env` (0600) or inject via secrets manager (OA-5) |
 | `SP_OIDC_INTROSPECT_BELOW_TTL` | No | `300` | Introspect tokens with < N seconds remaining (OA-5) |
 | `SP_MCP_ALLOW_HTTP_PLAINTEXT` | No | unset | Set to `1` for loopback-only test only — always logs ERROR |
 

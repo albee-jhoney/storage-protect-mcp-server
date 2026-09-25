@@ -11,6 +11,7 @@ Requirements traceability and security gap tracking for the IBM Storage Protect 
 | [`audit-report.md`](audit-report.md) | Independent consistency, correctness, completeness, and verification audit of the documentation, source code, tests, and traceability claims |
 | [`traceability-matrix.md`](traceability-matrix.md) | End-to-end requirements traceability matrix mapping security requirements to architecture, design, implementation, source files, and tests |
 | [`gap-analysis.md`](gap-analysis.md) | Historical security gap analysis and claimed remediation status; read with [`audit-report.md`](audit-report.md) for independent verification findings |
+| [`guides-gap-analysis.md`](guides-gap-analysis.md) | Consistency, correctness, and completeness assessment of `docs/guides/` against design specs, implementation specs, and source — 3 open findings (GGA-02, GGA-04, GGA-05) |
 
 ---
 
