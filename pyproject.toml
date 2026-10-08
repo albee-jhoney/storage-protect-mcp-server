@@ -95,3 +95,9 @@ package-dir = {"" = "src"}
 where = ["src"]
 include = ["sp_mcp_server*"]
 exclude = ["tests*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "strict"
+markers = [
+    "integration: tests that require a live IBM SP server (deselect with -m 'not integration')",
+]
