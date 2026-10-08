@@ -1,6 +1,6 @@
 # Installation Guide
 
-> **Before installing:** Complete [`planning-guide.md`](planning-guide.md) to choose your deployment topology (co-located or centralised), inventory your SP servers, and verify prerequisites. The steps in this guide assume those decisions have already been made.
+> **Before installing:** Complete [`planning-guide.md`](planning-guide.md) to choose your deployment topology (Step 1 — co-located or centralised) **and** your transport protocol (Step 1.5 — stdio over SSH or streamable-http with TLS), inventory your SP servers, and verify prerequisites. The steps in this guide assume those decisions have already been made.
 
 This guide covers the topology-specific installation steps for the IBM Storage Protect MCP Server. Complete this guide before proceeding to [`configure-guide.md`](configure-guide.md).
 
@@ -13,6 +13,7 @@ This guide covers the topology-specific installation steps for the IBM Storage P
   - [Step 1.2 — Confirm `dsmadmc` is available](#step-12--confirm-dsmadmc-is-available)
   - [Step 1.3 — Confirm the SP server TLS certificate is trusted](#step-13--confirm-the-sp-server-tls-certificate-is-trusted)
   - [Step 1.4 — Confirm `LD_LIBRARY_PATH` includes GSKit](#step-14--confirm-ld_library_path-includes-gskit)
+  - [Transport B — TLS certificate provisioning](#transport-b--tls-certificate-provisioning)
 - [Part 2 — OS User Setup](#part-2--os-user-setup)
   - [Topology A — Co-located](#topology-a--co-located)
   - [Topology B — Centralised](#topology-b--centralised)
@@ -48,14 +49,23 @@ Before creating any users or installing packages, confirm that `dsmadmc` is reac
 
 ### Step 1.1 — Identify your host type
 
-Answer this question first:
+Answer these two questions before continuing:
 
-> **Is the host where you will install the MCP server the same machine as the IBM SP server?**
+> **Question 1 — Topology:** Is the host where you will install the MCP server the same machine as the IBM SP server?
 
 | Answer | Topology | `dsmadmc` situation |
 |---|---|---|
 | **Yes** — same machine | Topology A (co-located) | `dsmadmc` is already installed; cert is already on-host |
 | **No** — separate machine | Topology B (centralised) | You must install the IBM SP admin client package and register the cert separately |
+
+> **Question 2 — Transport:** Will the MCP client connect over stdio/SSH (Transport A) or streamable-http with TLS (Transport B)?
+
+| Answer | Transport | Extra installation requirements |
+|---|---|---|
+| **stdio over SSH** | Transport A | None beyond what this guide already covers — SSH key deployment is handled in [`configure-guide.md`](configure-guide.md) |
+| **streamable-http with TLS** | Transport B | TLS certificate and key must be provisioned before first run (see [Transport B — TLS certificate provisioning](#transport-b--tls-certificate-provisioning) below); an enterprise IdP with `mcp:*` scopes is required |
+
+> Both answers are independent. You may combine any topology with either transport.
 
 ---
 
@@ -168,6 +178,66 @@ LD_LIBRARY_PATH=/usr/local/ibm/gsk8_64/lib64:/opt/ibm/lib:/opt/ibm/lib64
 ```
 
 > If the SP instance user's `LD_LIBRARY_PATH` also includes DB2 sqllib paths (e.g. `/home/tsminst1/sqllib/lib64/icc`), include those as well — they contain ICC crypto libraries that `dsmadmc` requires for TLS on DB2-backed SP installations.
+
+---
+
+### Transport B — TLS certificate provisioning
+
+> **Skip if using Transport A (stdio over SSH).** This section applies only if you chose Transport B in [`planning-guide.md`](planning-guide.md) Step 1.5.
+
+The MCP server process exits at startup with `SECURITY [RG-5]` if `SP_TLS_CERT` or `SP_TLS_KEY` are missing or unreadable. Provision the certificate before enabling the HTTP transport.
+
+**Option 1 — Enterprise PKI or Let's Encrypt (production):**
+
+Issue a certificate signed by your internal CA or by Let's Encrypt for the MCP server's hostname. Place the PEM-encoded files where `mcp-runner` can read them:
+
+```bash
+# Topology A — one cert per SP server host
+mkdir -p /opt/sp-mcp-server/certs
+# Copy your cert and key into place:
+cp /path/to/server.crt /opt/sp-mcp-server/certs/server.crt
+cp /path/to/server.key /opt/sp-mcp-server/certs/server.key
+chmod 640 /opt/sp-mcp-server/certs/server.key
+chown root:mcp-runner /opt/sp-mcp-server/certs/server.key
+
+# Topology B — one cert for the control host (or a SAN cert covering all MCP endpoints)
+mkdir -p /opt/sp-mcp/certs
+cp /path/to/server.crt /opt/sp-mcp/certs/server.crt
+cp /path/to/server.key /opt/sp-mcp/certs/server.key
+chmod 640 /opt/sp-mcp/certs/server.key
+chown root:mcp-runner /opt/sp-mcp/certs/server.key
+```
+
+**Option 2 — Self-signed certificate (lab / testing only):**
+
+```bash
+# Generate a self-signed cert valid for 365 days (replace CN with your hostname)
+openssl req -x509 -newkey rsa:4096 -sha256 -days 365 -nodes \
+  -keyout /opt/sp-mcp-server/certs/server.key \
+  -out    /opt/sp-mcp-server/certs/server.crt \
+  -subj "/CN=sp-mcp-01.corp.example.com" \
+  -addext "subjectAltName=DNS:sp-mcp-01.corp.example.com"
+
+chmod 640 /opt/sp-mcp-server/certs/server.key
+chown root:mcp-runner /opt/sp-mcp-server/certs/server.key
+```
+
+> **Self-signed certs in production** require MCP clients to trust the CA. For enterprise deployments always use a PKI-issued or Let's Encrypt certificate. Never disable TLS verification on the client side.
+
+Add the paths to `.env` once the files are in place (Part 5 covers the full `.env` — add these there):
+
+```dotenv
+SP_TLS_CERT=/opt/sp-mcp-server/certs/server.crt
+SP_TLS_KEY=/opt/sp-mcp-server/certs/server.key
+```
+
+Verify the key is readable by `mcp-runner` before starting the server:
+
+```bash
+su - mcp-runner -c "openssl x509 -noout -subject -in /opt/sp-mcp-server/certs/server.crt"
+su - mcp-runner -c "openssl rsa  -noout -check   -in /opt/sp-mcp-server/certs/server.key"
+# Both commands should succeed without errors.
+```
 
 ---
 
@@ -370,11 +440,14 @@ SP_MCP_AUTH_MODE=service_account   # 'service_account' (default) or 'dynamic'
 SP_MCP_SESSION_TTL=900             # Inactivity lease timeout in seconds (default: 15m)
 SP_MCP_SESSION_MAX_TTL=3600        # Hard session cap in seconds (default: 60m)
 
-# ── HTTP transport with OIDC (optional — INT-2) ─────────────────
+# ── streamable-http transport with TLS (Transport B — INT-2) ────
+# Required only when --transport http is used (see planning-guide.md Step 1.5).
+# Ensure cert/key files are provisioned first (Part 1 above).
 # SP_OIDC_ISSUER=https://login.microsoftonline.com/<tenant>/v2.0
 # SP_OIDC_AUDIENCE=sp-mcp-server
 # SP_TLS_CERT=/opt/sp-mcp-server/certs/server.crt
 # SP_TLS_KEY=/opt/sp-mcp-server/certs/server.key
+# SP_MCP_PUBLIC_URL=https://sp-mcp-01.corp.example.com:8443
 ```
 
 ### Complete environment variable reference
@@ -619,11 +692,32 @@ source .venv/bin/activate
 # 1. Confirm dsmadmc is reachable
 dsmadmc -id=mcp-svc-readonly "QUERY STATUS"
 
-# 2. Dry-run the server
+# 2. Dry-run the server (Transport A — stdio)
 SP_MCP_SKIP_SECURITY_CHECKS=1 \
   python3 -m sp_mcp_server.main --mode read-only --enable-servers system 2>&1 | head -20
 # Expected: NET-1 check passed, tool registration logged, waiting on stdin
 # Note: remove SP_MCP_SKIP_SECURITY_CHECKS and set SP_MCP_ENV=production before going live.
+```
+
+**Transport B only — verify HTTP transport startup:**
+
+```bash
+# As mcp-runner, with .venv active (SP_TLS_CERT / SP_TLS_KEY must be set in .env)
+cd /opt/sp-mcp-server
+source .venv/bin/activate
+
+SP_MCP_SKIP_SECURITY_CHECKS=1 \
+  python3 -m sp_mcp_server.main --transport http --port 8443 \
+    --mode read-only --enable-servers system 2>&1 | head -30
+# Expected startup lines (no SECURITY [RG-5] error):
+#   INFO:  RG-5: TLS configured — cert=/opt/sp-mcp-server/certs/server.crt
+#   INFO:  OA-1: AS metadata cached from https://...
+#   INFO:  Uvicorn running on https://0.0.0.0:8443
+
+# Confirm port is open from a second terminal or from the client workstation:
+curl --cacert /opt/sp-mcp-server/certs/server.crt \
+  https://$(hostname -f):8443/health
+# Expected: {"status":"ok"}
 ```
 
 ### Topology B — on the control host, once per SP server subdirectory
@@ -647,6 +741,21 @@ SP_MCP_SKIP_SECURITY_CHECKS=1 \
   python3 -m sp_mcp_server.main --mode read-only --enable-servers system 2>&1 | head -20
 ```
 
+**Transport B only — verify HTTP transport startup (Topology B):**
+
+```bash
+# Each process uses its own port; test each SP server subdirectory in turn
+cd /opt/sp-mcp/spsvr01
+SP_MCP_SKIP_SECURITY_CHECKS=1 \
+  python3 -m sp_mcp_server.main --transport http --port 8443 \
+    --mode read-only --enable-servers system 2>&1 | head -30
+# Expected: RG-5 TLS configured, Uvicorn running on https://0.0.0.0:8443
+
+curl --cacert /opt/sp-mcp/certs/server.crt \
+  https://$(hostname -f):8443/health
+# Expected: {"status":"ok"}
+```
+
 ---
 
 ## Post-Install Checklist
@@ -665,7 +774,12 @@ SP_MCP_SKIP_SECURITY_CHECKS=1 \
 [ ] SP_MCP_USE_PASSWORD_STASH=1 set in .env
 [ ] SP_MCP_ENV=production set in .env
 [ ] sudoers rule deployed (if offline dsmserv/servermon tools are needed)
-[ ] SSH public key deployed to mcp-runner@<this-host> (see configure-guide.md)
+[ ] — Transport A only — SSH public key deployed to mcp-runner@<this-host> (see configure-guide.md)
+[ ] — Transport B only — TLS cert/key provisioned in /opt/sp-mcp-server/certs/ (permissions 640, owner root:mcp-runner)
+[ ] — Transport B only — SP_TLS_CERT, SP_TLS_KEY, SP_OIDC_ISSUER, SP_MCP_PUBLIC_URL set in .env
+[ ] — Transport B only — TCP 8443 (or chosen port) open inbound from MCP client hosts
+[ ] — Transport B only — MCP server host can reach IdP OIDC discovery URL outbound
+[ ] — Transport B only — HTTP transport smoke-test passed (Part 9 above)
 ```
 
 ### Topology B — run on the control host
@@ -684,17 +798,24 @@ SP_MCP_SKIP_SECURITY_CHECKS=1 \
 [ ] Password stash populated for each account on each SP server using correct -se=<servername>
 [ ] SP_MCP_USE_PASSWORD_STASH=1 set in each per-server .env
 [ ] SP_MCP_ENV=production set in each per-server .env
-[ ] SSH public key deployed to mcp-runner@ctrl-host (see configure-guide.md)
 [ ] Offline tools (dsmserv/servermon) NOT expected — not supported in Topology B
+[ ] — Transport A only — SSH public key deployed to mcp-runner@ctrl-host (see configure-guide.md)
+[ ] — Transport B only — TLS cert/key provisioned in /opt/sp-mcp/certs/ (permissions 640, owner root:mcp-runner)
+[ ] — Transport B only — SP_TLS_CERT, SP_TLS_KEY, SP_OIDC_ISSUER, SP_MCP_PUBLIC_URL set in each per-server .env
+[ ] — Transport B only — Each MCP process port (e.g. :8443, :8444) open inbound from MCP client hosts
+[ ] — Transport B only — Control host can reach IdP OIDC discovery URL outbound
+[ ] — Transport B only — HTTP transport smoke-test passed per SP server subdirectory (Part 9 above)
 ```
 
 ---
 
 ## Related Documentation
 
-- Deployment planning: [`planning-guide.md`](planning-guide.md)
-- MCP client configuration: [`configure-guide.md`](configure-guide.md)
+- Deployment planning (topology + transport choice): [`planning-guide.md`](planning-guide.md)
+- MCP client configuration (stdio + HTTP transport): [`configure-guide.md`](configure-guide.md)
+- Local IdP / OAuth 2 test environment (Transport B): [`local-idp-oauth2-guide.md`](local-idp-oauth2-guide.md)
 - User guide: [`user-guide.md`](user-guide.md)
 - Troubleshooting: [`troubleshoot.md`](troubleshoot.md)
-- Security — Network: [`../implement/impl-security-network.md`](../implement/impl-security-network.md)
-- Security — Identity & Credentials: [`../implement/impl-security-identity-credentials.md`](../implement/impl-security-identity-credentials.md)
+- Security — Network & TLS: [`../design/security-network.md`](../design/security-network.md)
+- Security — OAuth 2 / OIDC (Transport B): [`../design/security-oauth2.md`](../design/security-oauth2.md)
+- Security — Identity & Credentials: [`../design/security-identity-credentials.md`](../design/security-identity-credentials.md)

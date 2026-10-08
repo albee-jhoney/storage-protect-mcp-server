@@ -1,10 +1,12 @@
 # Configuration Guide
 
-> **Before configuring:** Complete [`planning-guide.md`](planning-guide.md) to choose your deployment topology and plan your SP server inventory, service accounts, and SSH keys. Complete [`install-guide.md`](install-guide.md) to install the MCP server software. The steps in this guide assume both are done.
+> **Before configuring:** Complete [`planning-guide.md`](planning-guide.md) to choose your deployment topology (Step 1) and transport protocol (Step 1.5), and plan your SP server inventory, service accounts, and keys. Complete [`install-guide.md`](install-guide.md) to install the MCP server software and — if using Transport B — to provision TLS certificates. The steps in this guide assume both are done.
 
 This guide contains MCP client configuration examples for connecting to the IBM Storage Protect MCP Server, covering all supported transports and deployment scenarios.
 
-> **Security note**: All configurations use SSH key authentication with a dedicated non-root `mcp-runner` OS user (NET-2). The legacy `sshpass`/`StrictHostKeyChecking=no`/`root` pattern has been removed. See [`install-guide.md`](install-guide.md) for SSH key setup steps.
+> **Security note (Transport A — stdio over SSH):** All stdio configurations use SSH key authentication with a dedicated non-root `mcp-runner` OS user (NET-2). The legacy `sshpass`/`StrictHostKeyChecking=no`/`root` pattern has been removed. See Part 1 below for SSH key setup steps.
+>
+> **Security note (Transport B — streamable-http with TLS):** All HTTP configurations require TLS (`SP_TLS_CERT` / `SP_TLS_KEY`, rule RG-5) and OIDC Bearer token authentication (OAuth 2.1). TLS is mandatory — the server exits at startup if certificates are missing. See Part 2 below for configuration steps.
 
 ---
 
@@ -63,12 +65,14 @@ This guide contains MCP client configuration examples for connecting to the IBM 
 
 ## Transport Options
 
-The MCP server supports two transport modes:
+The MCP server supports two transport protocols. Choose the part of this guide that matches your decision from [`planning-guide.md`](planning-guide.md) Step 1.5:
 
-| Transport | Flag | Authentication | Typical use |
-|-----------|------|---------------|-------------|
-| `stdio` (default) | `--transport stdio` | SSH key / Tiered Service Accounts or Dynamic Challenge-Response | Local or single-client deployments (e.g. Claude Desktop) |
-| `http` | `--transport http` | OIDC bearer token (OAuth 2.1) / Dynamic session tokens | Enterprise / multi-client deployments (e.g. Web UIs, REST gateways) |
+| Transport | Planning guide name | CLI flag | Authentication | Typical use |
+|-----------|---------------------|----------|---------------|-------------|
+| `stdio` over SSH | **Transport A** | `--transport stdio` (default) | SSH Ed25519 key to host + SP service account credentials in `.env` (or Dynamic Challenge-Response) | Single-operator workstations, Claude Desktop, VS Code, CI/CD pipelines |
+| `streamable-http` with TLS | **Transport B** | `--transport http` | OIDC Bearer token (OAuth 2.1, `mcp:*` scopes) issued by an enterprise IdP | Enterprise web UIs (OpenWebUI), multi-client deployments, REST API gateways |
+
+> **Transport A** opens no network port on the MCP server — the SSH session *is* the MCP channel. **Transport B** listens on a TLS-secured HTTPS port (default `8443`) and requires `SP_TLS_CERT`, `SP_TLS_KEY`, and an OIDC-compliant IdP configured in advance. See [`planning-guide.md` Step 1.5](planning-guide.md#step-15--choose-a-transport-protocol) for the full comparison and prerequisite list.
 
 ---
 
@@ -937,13 +941,14 @@ Every security control applies independently per MCP server process regardless o
 
 ## Related Documentation
 
-- Deployment planning: [`planning-guide.md`](planning-guide.md)
-- Installation steps: [`install-guide.md`](install-guide.md)
+- Deployment planning (topology + transport choice): [`planning-guide.md`](planning-guide.md)
+- Installation steps (including Transport B TLS provisioning): [`install-guide.md`](install-guide.md)
+- Local IdP / OAuth 2 test environment (Transport B): [`local-idp-oauth2-guide.md`](local-idp-oauth2-guide.md)
 - User guide: [`user-guide.md`](user-guide.md)
 - Troubleshooting: [`troubleshoot.md`](troubleshoot.md)
 - Security — Identity & Credentials: [`../design/security-identity-credentials.md`](../design/security-identity-credentials.md)
-- Security — Network: [`../design/security-network.md`](../design/security-network.md)
+- Security — Network & TLS: [`../design/security-network.md`](../design/security-network.md)
+- Security — OAuth 2 / OIDC (Transport B): [`../design/security-oauth2.md`](../design/security-oauth2.md)
 - Security — Implementation (Credentials): [`../implement/impl-security-identity-credentials.md`](../implement/impl-security-identity-credentials.md)
 - Security — Implementation (Network): [`../implement/impl-security-network.md`](../implement/impl-security-network.md)
 - Security — Integrations: [`../implement/impl-security-integrations.md`](../implement/impl-security-integrations.md)
-- Local mock IdP + OAuth 2 (testing & demo): [`local-idp-oauth2-guide.md`](local-idp-oauth2-guide.md)
