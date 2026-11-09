@@ -15,6 +15,23 @@ current_execution_credentials: contextvars.ContextVar[Optional[Tuple[str, str]]]
 )
 
 
+# Command verbs that may be logged. The command string itself is never logged
+# because it can embed passwords (e.g. UPDATE NODE <name> <password>).
+_LOGGABLE_VERBS = (
+    "QUERY", "SELECT", "SHOW", "DEFINE", "UPDATE", "DELETE", "REGISTER",
+    "REMOVE", "RENAME", "LOCK", "UNLOCK", "SET", "BACKUP", "RESTORE",
+    "AUDIT", "CANCEL", "MOVE", "MIGRATE", "RECLAIM", "EXPIRE", "PREPARE",
+    "ENABLE", "DISABLE", "GRANT", "REVOKE", "HELP", "HALT",
+)
+
+
+def _loggable_verb(command: str) -> str:
+    """Return the allowlisted leading verb of *command*, or 'OTHER'."""
+    first = command.split(None, 1)[0].upper() if command.strip() else ""
+    # Return the constant from the allowlist, never a slice of the input.
+    return next((verb for verb in _LOGGABLE_VERBS if verb == first), "OTHER")
+
+
 class DsmAdmcWrapper:
     """Wrapper around dsmadmc for online IBM SP administration commands."""
 
@@ -85,15 +102,11 @@ class DsmAdmcWrapper:
                 "PASSWORDACCESS=GENERATE in dsm.sys to eliminate this exposure."
             )
 
-        cmd_parts = command.split()
-        args.extend(cmd_parts)
+        args.extend(command.split())
 
-        logger.info("Executing dsmadmc command: %s", command)
-        logger.debug(
-            "Full command args: %s [credentials hidden] %s",
-            " ".join(a for a in args if not a.startswith("-PA=")),
-            " ".join(cmd_parts),
-        )
+        # Neither `args` (-PA=<password>) nor `command` (may embed a password)
+        # is logged; only an allowlisted verb is.
+        logger.info("Executing dsmadmc %s command", _loggable_verb(command))
 
         try:
             try:
@@ -181,6 +194,11 @@ class DsmAdmcWrapper:
             f"-ID={effective_id}",
             "-COMMAdelimited",
         ]
+        # NET-3: same SERVERNAME stanza selection as execute(), so a command
+        # does not change target server when it is routed through the silent path.
+        sp_server_name = os.environ.get("SP_SERVER_NAME", "")
+        if sp_server_name:
+            args.append(f"-SE={sp_server_name}")
         if not use_stash:
             args.insert(4, f"-PA={effective_pwd}")
 
