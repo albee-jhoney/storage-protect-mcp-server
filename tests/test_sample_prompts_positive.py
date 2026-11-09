@@ -7,8 +7,8 @@ Validates that the IBM Storage Protect MCP server constructs valid, compliant
 IBM Storage Protect commands and executes successfully when presented with
 authentic, well-formed operational prompts from docs/example/sample-prompts.md.
 
-Each catalog prompt is structured as Role / Context / Task / Constraints /
-Output Format. The Task section names the MCP tools to call; these tests drive
+Each catalog prompt states a role, context, task, constraints, and output
+format in natural English. The Task section names the MCP tools to call; these tests drive
 those same tools directly. Prompt structure itself is validated by
 tests/test_sample_prompts_structure.py, which also fails if a tool named in a
 prompt has no test here.

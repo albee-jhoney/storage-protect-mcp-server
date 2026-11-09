@@ -3,7 +3,7 @@
 * **Document**: Test Cases for IBM Storage Protect MCP Server
 * **Revision**: 2026-10
 * **Status**: Complete & Verified
-* **Total Automated Tests Mapped**: **582 Test Cases** across 15 files (567 passing, 15 live-integration skipped)
+* **Total Automated Tests Mapped**: **583 Test Cases** across 15 files (568 passing, 15 live-integration skipped)
 * **Inputs**: Architecture Docs, Security Design Specs, Implementation Specs, User Guides, Source Code (`src/sp_mcp_server/`), and Test Automation Suite (`tests/`)
 
 ---
@@ -22,7 +22,7 @@
 | **Section 8** | Core Commands & Config | [`tests/test_commands.py`](../../tests/test_commands.py), [`tests/test_config.py`](../../tests/test_config.py) | 8 | BaseCommand queries, keyring resolution |
 | **Section 9** | Core Components & Privilege | [`tests/test_core_components.py`](../../tests/test_core_components.py) | 7 | Sudo privilege escalation, offline commands |
 | **Section 10** | Persona Prompt Scenarios (Unit) | [`tests/test_sample_prompts_positive.py`](../../tests/test_sample_prompts_positive.py) | 92 | Personas R-01..R-08 & Privilege annotations |
-| **Section 10b** | Prompt Catalog Structure | [`tests/test_sample_prompts_structure.py`](../../tests/test_sample_prompts_structure.py) | 299 | Role/Context/Task/Constraints/Output Format, 100-char lines, tool names, negative mappings |
+| **Section 10b** | Prompt Catalog Structure | [`tests/test_sample_prompts_structure.py`](../../tests/test_sample_prompts_structure.py) | 300 | Natural-English role/context/task/constraints/output blocks, 100-char lines, tool names, negative mappings |
 | **Section 11** | Live System Integration | [`tests/test_sample_prompts_positive.py`](../../tests/test_sample_prompts_positive.py) | 15 | Live SP server staging verification |
 
 ---
@@ -321,7 +321,7 @@
 ## Section 10: Persona Prompt Scenarios (`test_sample_prompts_positive.py` Part 1 — 92 Tests)
 
 * **Objective**: Validate LLM user prompt templates, command syntax construction, and multi-step tool calls across all eight operational personas defined in [`docs/example/sample-prompts.md`](../example/sample-prompts.md).
-* **Prompt Format**: Each of the 128 catalog prompts is structured as **Role**, **Context**, **Task**, **Constraints**, and **Output Format**. The Task section names the MCP tools to call; the tests below drive those same tools directly, so every tool named in a prompt has at least one positive test (enforced by `TestPositivePromptCatalog::test_every_prompt_tool_has_positive_test`).
+* **Prompt Format**: Each of the 128 catalog prompts is written in natural English: an opening paragraph (role, then context and MCP server) followed by **Do the following:** (task), **The following constraints apply:** (constraints), and **Generate the output with the following format:** (output format). The Task section names the MCP tools to call; the tests below drive those same tools directly, so every tool named in a prompt has at least one positive test (enforced by `TestPositivePromptCatalog::test_every_prompt_tool_has_positive_test`).
 * **Test Harness**: `tests/test_sample_prompts_positive.py` (Part 1) utilizing `FakeAdmcCli` and `FakeServermonCli` mock harnesses.
 
 ### 10.1 Persona R-01: Data Protection Operator (21 Tests)
@@ -372,18 +372,19 @@
   - `TestNegativeR07ServiceEngineer` (2): Servermon argument array injection defense, activity log invalid date syntax handling.
   - `TestNegativeR08Replication` (3): Cross-server session replay rejection, query replication missing mandatory node name, multi-target replication rule constraint.
 
-### 10.11 Prompt Catalog Structure (`test_sample_prompts_structure.py` — 299 Tests)
+### 10.11 Prompt Catalog Structure (`test_sample_prompts_structure.py` — 300 Tests)
 * **Objective**: Keep the human-readable prompt catalogs and the automation in lock-step so a prompt cannot drift from the structure, width, tool names, or test mappings the suite relies on.
 * **Catalogs Under Test**: [`docs/example/sample-prompts.md`](../example/sample-prompts.md) (128 prompts) and [`tests/negative_sample_prompts.md`](../../tests/negative_sample_prompts.md) (18 prompts).
-* **Required Prompt Structure**: `Role:` → `Context:` → `Task:` → `Constraints:` → `Output Format:`. The two long-form "Context-Optimised" blueprint prompts must contain all five sections but keep their own rule and step sections between Task and Output Format.
+* **Required Prompt Structure**: `sample-prompts.md` prompts open with `You are a ...` (role) and the context, then contain `Do the following:` → `The following constraints apply:` → `Generate the output with the following format:` in that order. The two long-form "Context-Optimised" blueprint prompts must contain the same three blocks but keep their own `Follow these query success rules:` and `Follow this execution sequence:` blocks, and place constraints last. `negative_sample_prompts.md` keeps labelled sections: `Role:` → `Context:` → `Task:` → `Constraints:` → `Output Format:`.
 
 | Case Group | Test Method | Count | Expected Behavior |
 | :--- | :--- | :---: | :--- |
 | **TC-PS-01** | `TestPositivePromptCatalog::test_prompt_counts_per_persona` | 1 | Prompt counts per persona match the catalog (R-01 17, R-02 13, R-03 14, R-04 8, R-05 13, R-06 13, R-07 11, blueprint 1, R-08 38). |
-| **TC-PS-02** | `TestPositivePromptCatalog::test_prompt_has_all_sections` | 128 | Every prompt contains all five sections, in order for standard prompts. |
+| **TC-PS-02** | `TestPositivePromptCatalog::test_prompt_has_all_blocks` | 128 | Every prompt opens with the role and contains the task, constraints, and output-format blocks, in order for standard prompts. |
+| **TC-PS-02b** | `TestPositivePromptCatalog::test_no_legacy_section_labels` | 1 | No `Role:`, `Context:`, `Task:`, `Constraints:`, `Output Format:`, `Query Success Rules:`, or `Required Execution Sequence:` labels remain in `sample-prompts.md`. |
 | **TC-PS-03** | `TestPositivePromptCatalog::test_prompt_lines_within_limit` | 128 | No prompt line exceeds 100 characters. |
-| **TC-PS-04** | `TestPositivePromptCatalog::test_role_matches_persona` | 1 | Role statement names the persona of its section. |
-| **TC-PS-05** | `TestPositivePromptCatalog::test_context_names_mcp_server` | 1 | Context identifies the target MCP server (`sp-mcp-...`). |
+| **TC-PS-04** | `TestPositivePromptCatalog::test_role_matches_persona` | 1 | Opening role sentence names the persona of its section. |
+| **TC-PS-05** | `TestPositivePromptCatalog::test_context_names_mcp_server` | 1 | Opening context identifies the target MCP server (`sp-mcp-...`). |
 | **TC-PS-06** | `TestPositivePromptCatalog::test_referenced_tools_are_registered` | 1 | Every `query_*`, `define_*`, `update_*`, `set_*`, `restore_*`, `run_*` tool named in a prompt is a registered MCP tool. |
 | **TC-PS-07** | `TestPositivePromptCatalog::test_every_prompt_tool_has_positive_test` | 1 | Every registered tool named in a prompt is exercised by `test_sample_prompts_positive.py`. |
 | **TC-PS-08** | `TestPositivePromptCatalog::test_constraints_define_execution_safety` | 1 | Constraints state read-only, advisory, or confirmation-gated behavior. |

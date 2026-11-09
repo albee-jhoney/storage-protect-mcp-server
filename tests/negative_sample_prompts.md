@@ -2,7 +2,7 @@
 
 A curated collection of adversarial, malformed, unconstrained, and privilege-violating prompts designed to test the resilience, input sanitization, security boundaries, and fail-closed defenses of the IBM Storage Protect MCP Server.
 
-Every prompt follows the same structure as the positive catalog in [`docs/example/sample-prompts.md`](../docs/example/sample-prompts.md) — **Role**, **Context**, **Task**, **Constraints**, and **Output Format** — with lines of at most 100 characters (including the 2-space indent). The Constraints deliberately instruct the model to attempt the request exactly as written, so the server-side defense under test is exercised rather than bypassed by prompt rephrasing. Structure is enforced by [`tests/test_sample_prompts_structure.py`](test_sample_prompts_structure.py).
+Every prompt carries the same content as the prompts in the positive catalog in [`docs/example/sample-prompts.md`](../docs/example/sample-prompts.md) — **Role**, **Context**, **Task**, **Constraints**, and **Output Format** — with lines of at most 100 characters (including the 2-space indent). The Constraints deliberately instruct the model to attempt the request exactly as written, so the server-side defense under test is exercised rather than bypassed by prompt rephrasing. Structure is enforced by [`tests/test_sample_prompts_structure.py`](test_sample_prompts_structure.py).
 
 Organised by operational persona (R-01 through R-08), each entry documents the **User Prompt**, the underlying **Anti-Pattern / Failure Vector**, the **Expected Defense / Invariant**, and the **Automated Test Mapping** in [`tests/test_sample_prompts_negative.py`](test_sample_prompts_negative.py).
 

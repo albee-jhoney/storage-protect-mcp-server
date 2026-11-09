@@ -9,7 +9,7 @@
   * Low-Level Implementation Specifications: [`docs/implement/impl-security-*.md`](../implement/)
   * User & Deployment Guides: [`docs/guides/`](../guides/)
   * Source Code: [`src/sp_mcp_server/`](../../src/sp_mcp_server/)
-  * Test Automation Suite: [`tests/`](../../tests/) (582 collected tests across 15 files)
+  * Test Automation Suite: [`tests/`](../../tests/) (583 collected tests across 15 files)
   * Traceability Matrix: [`docs/traceability/traceability-matrix.md`](../traceability/traceability-matrix.md)
 
 ---
@@ -101,8 +101,8 @@ graph TD
   - **R-07 (Storage Protect Service Engineer)**: Servermon diagnostic utility invocation (`RunServerMon`), activity log defect triage for specific message codes (`ANR0406E`), and cloud migration warning frequency analysis (`ANR8468W`) (`TestR07ServiceEngineerDiagnostics`).
   - **R-08 (Multi-Server Replication & Data Management)**: Multi-server replication topology discovery, cross-server storage rules, replication failure record retrieval, per-node replication progress monitoring, storage pool synchronization verification, failover node reconfiguration, and storage tiering rule queries (`TestR08MultiServerReplication`).
   - **Tool Privilege Tier Annotations**: Runtime validation of read-only tool flags and required privilege tiers (`policy`, `operator`, `storage`, `system`) (`TestPromptToolPrivilegeAnnotations`).
-- **Prompt Format**: Every prompt in the catalogs follows the **Role / Context / Task / Constraints / Output Format** structure with lines of at most 100 characters. The Task section names the MCP tools to call, which ties each prompt to the unit tests below.
-- **Methodology**: Automated verification in `tests/test_sample_prompts_positive.py` (107 tests: 92 unit + 15 live integration), `tests/test_sample_prompts_negative.py` (18 tests), and `tests/test_sample_prompts_structure.py` (299 tests). The first two validate prompt-to-tool argument translation, exact SP command construction, and schema validation. The structure suite validates the 128 positive and 18 negative catalog prompts for required sections, section order, line width, registered tool names, positive-test coverage of every referenced tool, and negative-prompt-to-test mappings.
+- **Prompt Format**: Every prompt carries a role, context, task, constraints, and output format with lines of at most 100 characters. `sample-prompts.md` expresses these in natural English (`You are a ...`, then `Do the following:`, `The following constraints apply:`, `Generate the output with the following format:`); `negative_sample_prompts.md` keeps labelled sections. The Task section names the MCP tools to call, which ties each prompt to the unit tests below.
+- **Methodology**: Automated verification in `tests/test_sample_prompts_positive.py` (107 tests: 92 unit + 15 live integration), `tests/test_sample_prompts_negative.py` (18 tests), and `tests/test_sample_prompts_structure.py` (300 tests). The first two validate prompt-to-tool argument translation, exact SP command construction, and schema validation. The structure suite validates the 128 positive and 18 negative catalog prompts for required blocks, block order, line width, registered tool names, positive-test coverage of every referenced tool, and negative-prompt-to-test mappings.
 
 ### Level 5: Live IBM Storage Protect Integration Testing
 - **Target**: End-to-end integration with live IBM Storage Protect instance.

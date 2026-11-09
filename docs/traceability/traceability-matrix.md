@@ -217,7 +217,7 @@
 
 ### 2.9 Persona Prompts & AI Operational Workflows (PROMPT)
 
-Traceability between sample prompts in [`docs/example/sample-prompts.md`](../example/sample-prompts.md) across all eight operational personas and automated test cases in `tests/test_sample_prompts_positive.py` (107 tests: 92 unit + 15 live integration), `tests/test_sample_prompts_negative.py` (18 tests), and `tests/test_sample_prompts_structure.py` (299 structure checks that enforce the Role / Context / Task / Constraints / Output Format layout and the 100-character line limit on both catalogs):
+Traceability between sample prompts in [`docs/example/sample-prompts.md`](../example/sample-prompts.md) across all eight operational personas and automated test cases in `tests/test_sample_prompts_positive.py` (107 tests: 92 unit + 15 live integration), `tests/test_sample_prompts_negative.py` (18 tests), and `tests/test_sample_prompts_structure.py` (300 structure checks that enforce the role / context / task / constraints / output-format content and the 100-character line limit on both catalogs):
 
 | Persona ID | Persona Role & Operational Scope | Sample Prompt Reference | Automated Test Verification | Status |
 | :--- | :--- | :--- | :--- | :---: |
@@ -276,7 +276,7 @@ Traceability between sample prompts in [`docs/example/sample-prompts.md`](../exa
 | **Automated Test Suite (`tests/`)** | **15 Test Files (266 collected)** | **248 Passed / 18 Skipped / 0 Failed** | **0** | **0** |
 | **Total Requirements & Assurance Status** | **100% Traceability Coverage** | **All 51 controls, 8 personas + 18 negative prompts + 50 resilience tests verified** | **5 deployment items** | **0 open** |
 
-> **Verification & Isolation Note (2026-10):** All 266 collected tests pass cleanly with 0 failures under default and randomized suite collection order (248 passed, 18 skipped: 15 live integration stubs + 3 Windows POSIX permission bit tests). Complete persona prompt validation covering all eight operational personas (R-01 through R-08) is automated across `tests/test_sample_prompts_positive.py` (107 tests: 92 unit + 15 live integration), `tests/test_sample_prompts_negative.py` (18 tests), and `tests/test_sample_prompts_structure.py` (299 tests). The historical ordering-dependent ContextVar defect (AUD-F-01) is fully resolved via `tests/conftest.py`. Comprehensive Allure test results are automatically generated in `allure-results/` with environment telemetry and categorization.
+> **Verification & Isolation Note (2026-10):** All 266 collected tests pass cleanly with 0 failures under default and randomized suite collection order (248 passed, 18 skipped: 15 live integration stubs + 3 Windows POSIX permission bit tests). Complete persona prompt validation covering all eight operational personas (R-01 through R-08) is automated across `tests/test_sample_prompts_positive.py` (107 tests: 92 unit + 15 live integration), `tests/test_sample_prompts_negative.py` (18 tests), and `tests/test_sample_prompts_structure.py` (300 tests). The historical ordering-dependent ContextVar defect (AUD-F-01) is fully resolved via `tests/conftest.py`. Comprehensive Allure test results are automatically generated in `allure-results/` with environment telemetry and categorization.
 
 
 

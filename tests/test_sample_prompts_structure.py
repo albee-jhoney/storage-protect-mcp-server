@@ -5,21 +5,32 @@ Structural conformance tests for the sample prompt catalogs.
 
 Validates that every prompt in docs/example/sample-prompts.md and
 tests/negative_sample_prompts.md follows the prompt-engineering structure
-(Role, Context, Task, Constraints, Output Format), stays within the
+(role, context, task, constraints, output format), stays within the
 100-character line limit, references only registered MCP tools, and that every
 negative prompt maps to an existing automated test.
 
-Structure of a standard prompt::
+docs/example/sample-prompts.md is written in natural English. A standard prompt
+is an opening paragraph (the role, then the context and MCP server) followed by
+three introduced blocks::
 
-    Role:           persona and responsibility
-    Context:        environment, MCP server, and triggering situation
-    Task:           numbered actions naming the exact MCP tools
-    Constraints:    scope limits and execution safety rules
-    Output Format:  shape of the expected answer
+    You are a <role> responsible for ...
+    <environment and MCP server>. <situation that triggered the request>.
 
-The two "Context-Optimised ... Blueprint" prompts are long-form and place
-Constraints after Output Format; they are only required to contain all five
-sections.
+    Do the following:
+    1. <numbered actions naming the exact MCP tools>
+
+    The following constraints apply:
+    - <scope limits and execution safety rules>
+
+    Generate the output with the following format:
+    <shape of the expected answer>
+
+The two "Context-Optimised ... Blueprint" prompts are long-form and place the
+constraints block after the output block; they are only required to contain all
+three introduced blocks.
+
+tests/negative_sample_prompts.md still uses the labelled form (Role:, Context:,
+Task:, Constraints:, Output Format:).
 """
 
 from __future__ import annotations
@@ -36,6 +47,13 @@ NEGATIVE_TESTS = REPO_ROOT / "tests" / "test_sample_prompts_negative.py"
 
 MAX_LINE = 100
 SECTIONS = ["Role:", "Context:", "Task:", "Constraints:", "Output Format:"]
+
+# Natural-English block introducers used by docs/example/sample-prompts.md.
+TASK_MARK = "Do the following:"
+CONSTRAINTS_MARK = "The following constraints apply:"
+OUTPUT_MARK = "Generate the output with the following format:"
+POSITIVE_MARKS = [TASK_MARK, CONSTRAINTS_MARK, OUTPUT_MARK]
+BLUEPRINT_MARK = "Follow these query success rules:"
 
 # Prompts per persona section in sample-prompts.md (blueprint prompts included
 # in the section that contains them).
@@ -116,8 +134,9 @@ def _registered_tools() -> set[str]:
     return names
 
 
-def _id(prompt: str) -> str:
-    return prompt.split("\n", 3)[1][:50] if "\n" in prompt else prompt[:50]
+def _opening(prompt: str) -> str:
+    """Opening paragraph (role + context) of a natural-English prompt, one line."""
+    return " ".join(prompt.split(TASK_MARK, 1)[0].split())
 
 
 POSITIVE = _positive_prompts()
@@ -138,17 +157,27 @@ class TestPositivePromptCatalog:
         assert counts == EXPECTED_POSITIVE_COUNTS
 
     @pytest.mark.parametrize("idx", range(len(POSITIVE)))
-    def test_prompt_has_all_sections(self, idx: int):
+    def test_prompt_has_all_blocks(self, idx: int):
         key, prompt = POSITIVE[idx]
         lines = prompt.split("\n")
         positions = []
-        for section in SECTIONS:
-            assert section in lines, f"[{key} #{idx}] missing '{section}'"
-            positions.append(lines.index(section))
-        if key != "BLUEPRINT" and not (key == "R-08" and "Query Success Rules:" in lines):
+        for mark in POSITIVE_MARKS:
+            assert mark in lines, f"[{key} #{idx}] missing '{mark}'"
+            positions.append(lines.index(mark))
+        if BLUEPRINT_MARK not in lines:
             assert positions == sorted(positions), (
-                f"[{key} #{idx}] sections out of order: {positions}"
+                f"[{key} #{idx}] blocks out of order: {positions}"
             )
+        opening = _opening(prompt)
+        assert opening.startswith("You are a"), f"[{key} #{idx}] must open with the role"
+
+    def test_no_legacy_section_labels(self):
+        """The natural-English rewrite must not leave labelled sections behind."""
+        legacy = {"Role:", "Context:", "Task:", "Constraints:", "Output Format:",
+                  "Query Success Rules:", "Required Execution Sequence:"}
+        for key, prompt in POSITIVE:
+            found = legacy & set(prompt.split("\n"))
+            assert not found, f"[{key}] legacy labels remain: {sorted(found)}"
 
     @pytest.mark.parametrize("idx", range(len(POSITIVE)))
     def test_prompt_lines_within_limit(self, idx: int):
@@ -168,17 +197,15 @@ class TestPositivePromptCatalog:
             "R-08": "Data Protection Administrator",
         }
         for key, prompt in POSITIVE:
-            if key in expected and "Query Success Rules:" not in prompt:
-                role = prompt.split("\n")[1]
+            if key in expected and BLUEPRINT_MARK not in prompt:
+                role = _opening(prompt)
                 assert expected[key] in role, f"[{key}] unexpected role: {role}"
 
     def test_context_names_mcp_server(self):
         for key, prompt in POSITIVE:
-            if "Query Success Rules:" in prompt:
+            if BLUEPRINT_MARK in prompt:
                 continue
-            context = prompt.split("Context:\n", 1)[1].split("\n\n", 1)[0]
-            context = " ".join(context.split())
-            assert "sp-mcp-" in context, f"[{key}] Context lacks MCP server id"
+            assert "sp-mcp-" in _opening(prompt), f"[{key}] context lacks MCP server id"
 
     def test_referenced_tools_are_registered(self):
         registered = _registered_tools() | {"run_servermon"}
@@ -216,9 +243,9 @@ class TestPositivePromptCatalog:
     def test_constraints_define_execution_safety(self):
         """Every standard prompt states whether it is read-only, advisory, or gated."""
         for key, prompt in POSITIVE:
-            if "Query Success Rules:" in prompt:
+            if BLUEPRINT_MARK in prompt:
                 continue  # long-form blueprints keep their own rule sets
-            constraints = prompt.split("Constraints:\n", 1)[1].split("\n\nOutput Format:", 1)[0]
+            constraints = prompt.split(CONSTRAINTS_MARK, 1)[1].split(OUTPUT_MARK, 1)[0]
             assert (
                 "Read-only" in constraints
                 or "Advisory" in constraints
