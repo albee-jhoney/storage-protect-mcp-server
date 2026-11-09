@@ -3,7 +3,7 @@
 * **Document**: Test Cases for IBM Storage Protect MCP Server
 * **Revision**: 2026-10
 * **Status**: Complete & Verified
-* **Total Automated Tests Mapped**: **188 Test Cases** across 12 files
+* **Total Automated Tests Mapped**: **582 Test Cases** across 15 files (567 passing, 15 live-integration skipped)
 * **Inputs**: Architecture Docs, Security Design Specs, Implementation Specs, User Guides, Source Code (`src/sp_mcp_server/`), and Test Automation Suite (`tests/`)
 
 ---
@@ -21,7 +21,8 @@
 | **Section 7** | Subprocess CLI Wrapper | [`tests/test_cli_wrapper.py`](../../tests/test_cli_wrapper.py) | 5 | Subprocess quoting, exit codes, sudo execution |
 | **Section 8** | Core Commands & Config | [`tests/test_commands.py`](../../tests/test_commands.py), [`tests/test_config.py`](../../tests/test_config.py) | 8 | BaseCommand queries, keyring resolution |
 | **Section 9** | Core Components & Privilege | [`tests/test_core_components.py`](../../tests/test_core_components.py) | 7 | Sudo privilege escalation, offline commands |
-| **Section 10** | Persona Prompt Scenarios (Unit) | [`tests/test_sample_prompts_positive.py`](../../tests/test_sample_prompts_positive.py) | 88 | Personas R-01..R-08 & Privilege annotations |
+| **Section 10** | Persona Prompt Scenarios (Unit) | [`tests/test_sample_prompts_positive.py`](../../tests/test_sample_prompts_positive.py) | 92 | Personas R-01..R-08 & Privilege annotations |
+| **Section 10b** | Prompt Catalog Structure | [`tests/test_sample_prompts_structure.py`](../../tests/test_sample_prompts_structure.py) | 299 | Role/Context/Task/Constraints/Output Format, 100-char lines, tool names, negative mappings |
 | **Section 11** | Live System Integration | [`tests/test_sample_prompts_positive.py`](../../tests/test_sample_prompts_positive.py) | 15 | Live SP server staging verification |
 
 ---
@@ -317,9 +318,10 @@
 
 ---
 
-## Section 10: Persona Prompt Scenarios (`test_sample_prompts_positive.py` Part 1 — 88 Tests)
+## Section 10: Persona Prompt Scenarios (`test_sample_prompts_positive.py` Part 1 — 92 Tests)
 
 * **Objective**: Validate LLM user prompt templates, command syntax construction, and multi-step tool calls across all eight operational personas defined in [`docs/example/sample-prompts.md`](../example/sample-prompts.md).
+* **Prompt Format**: Each of the 128 catalog prompts is structured as **Role**, **Context**, **Task**, **Constraints**, and **Output Format**. The Task section names the MCP tools to call; the tests below drive those same tools directly, so every tool named in a prompt has at least one positive test (enforced by `TestPositivePromptCatalog::test_every_prompt_tool_has_positive_test`).
 * **Test Harness**: `tests/test_sample_prompts_positive.py` (Part 1) utilizing `FakeAdmcCli` and `FakeServermonCli` mock harnesses.
 
 ### 10.1 Persona R-01: Data Protection Operator (21 Tests)
@@ -338,21 +340,21 @@
 * **Classes**: `TestR04WorkloadBackupIntegration` (3).
 * **Test Focus**: Application-consistent backup volume file space validation for database nodes (`QueryClientBackupVolume`), SAP redo-log archive retention copy group definitions (`DefineCopyGroup`), and Oracle database data occupancy inspection (`QueryDataOccupancy`).
 
-### 10.5 Persona R-05: Security & Compliance Officer (10 Tests)
-* **Classes**: `TestR05SecurityHardening` (6), `TestR05PolicyAudit` (4).
-* **Test Focus**: `SESSIONSECURITY=STRICT` compliance audit, dual-custody command approval workflow (`APPROVE PENDINGCMD`), password lockout enforcement, ACTLOG scratchpad forensic extraction, policy domain retention inspection, and management class listing.
+### 10.5 Persona R-05: Security & Compliance Officer (11 Tests)
+* **Classes**: `TestR05SecurityHardening` (6), `TestR05PolicyAudit` (5).
+* **Test Focus**: `SESSIONSECURITY=STRICT` compliance audit, dual-custody command approval workflow (`APPROVE PENDINGCMD`), password lockout enforcement, ACTLOG scratchpad forensic extraction, policy domain retention inspection, management class listing, and retention set verification (`QueryRetentionSet`).
 
 ### 10.6 Persona R-06: Resilience Operations Manager (4 Tests)
 * **Classes**: `TestR06ResilienceOperations` (4).
 * **Test Focus**: Suspected ransomware node isolation via client lock (`SetClientLock`), server database disaster recovery restore invocation (`RestoreDB`), disaster recovery plan file status queries (`QueryRecoveryPlanFile`), and offsite media tracking (`QueryDRMedia`).
 
-### 10.7 Persona R-07: Storage Protect Service Engineer (3 Tests)
-* **Classes**: `TestR07ServiceEngineerDiagnostics` (3).
-* **Test Focus**: Servermon diagnostic utility invocation with custom flags (`RunServerMon`), activity log defect triage for specific message codes (`QueryActivityLog` with `SEARCH=ANR0406E`), and cloud migration warning frequency analysis (`QueryActivityLog` with `SEARCH=ANR8468W`).
+### 10.7 Persona R-07: Storage Protect Service Engineer (4 Tests)
+* **Classes**: `TestR07ServiceEngineerDiagnostics` (4).
+* **Test Focus**: Servermon diagnostic utility invocation with custom flags (`RunServerMon`), in-progress job checks before fix-pack windows (`QueryBackgroundJob` → `QUERY PROCESS`), activity log defect triage for specific message codes (`QueryActivityLog` with `SEARCH=ANR0406E`), and cloud migration warning frequency analysis (`QueryActivityLog` with `SEARCH=ANR8468W`).
 
-### 10.8 Persona R-08: Multi-Server Replication & Data Management (7 Tests)
-* **Classes**: `TestR08MultiServerReplication` (7).
-* **Test Focus**: Multi-server replication topology discovery (`QueryReplicationServer`), cross-server storage replication rules (`QueryReplicationRule`), inbound/outbound replication failure record retrieval (`QueryReplicationFailures`), per-node replication progress monitoring (`QueryReplicationStatus`), storage pool synchronization verification (`QueryProtectionStatus`), failover node domain updating (`UpdateNode`), and storage tiering rule queries (`QueryStorageRule`).
+### 10.8 Persona R-08: Multi-Server Replication & Data Management (9 Tests)
+* **Classes**: `TestR08MultiServerReplication` (9).
+* **Test Focus**: Multi-server replication topology discovery (`QueryReplicationServer`), cross-server storage replication rules (`QueryReplicationRule`), inbound/outbound replication failure record retrieval (`QueryReplicationFailures`), per-node replication progress monitoring (`QueryReplicationStatus`), per-node `REPLSTATE` listing for all nodes or a single node/target (`QueryReplicationClient` → `QUERY REPLNODE`), storage pool synchronization verification (`QueryProtectionStatus`), failover node domain updating (`UpdateNode`), and storage tiering rule queries (`QueryStorageRule`).
 
 ### 10.9 Tool Type and Privilege Annotations (30 Tests)
 * **Classes**: `TestPromptToolPrivilegeAnnotations` (18 read-only tool type tests + 12 write tool privilege tier tests).
@@ -369,6 +371,25 @@
   - `TestNegativeR06ResilienceManager` (2): Unprivileged disaster recovery `RESTORE DB` denial, client lock malformed enum handling.
   - `TestNegativeR07ServiceEngineer` (2): Servermon argument array injection defense, activity log invalid date syntax handling.
   - `TestNegativeR08Replication` (3): Cross-server session replay rejection, query replication missing mandatory node name, multi-target replication rule constraint.
+
+### 10.11 Prompt Catalog Structure (`test_sample_prompts_structure.py` — 299 Tests)
+* **Objective**: Keep the human-readable prompt catalogs and the automation in lock-step so a prompt cannot drift from the structure, width, tool names, or test mappings the suite relies on.
+* **Catalogs Under Test**: [`docs/example/sample-prompts.md`](../example/sample-prompts.md) (128 prompts) and [`tests/negative_sample_prompts.md`](../../tests/negative_sample_prompts.md) (18 prompts).
+* **Required Prompt Structure**: `Role:` → `Context:` → `Task:` → `Constraints:` → `Output Format:`. The two long-form "Context-Optimised" blueprint prompts must contain all five sections but keep their own rule and step sections between Task and Output Format.
+
+| Case Group | Test Method | Count | Expected Behavior |
+| :--- | :--- | :---: | :--- |
+| **TC-PS-01** | `TestPositivePromptCatalog::test_prompt_counts_per_persona` | 1 | Prompt counts per persona match the catalog (R-01 17, R-02 13, R-03 14, R-04 8, R-05 13, R-06 13, R-07 11, blueprint 1, R-08 38). |
+| **TC-PS-02** | `TestPositivePromptCatalog::test_prompt_has_all_sections` | 128 | Every prompt contains all five sections, in order for standard prompts. |
+| **TC-PS-03** | `TestPositivePromptCatalog::test_prompt_lines_within_limit` | 128 | No prompt line exceeds 100 characters. |
+| **TC-PS-04** | `TestPositivePromptCatalog::test_role_matches_persona` | 1 | Role statement names the persona of its section. |
+| **TC-PS-05** | `TestPositivePromptCatalog::test_context_names_mcp_server` | 1 | Context identifies the target MCP server (`sp-mcp-...`). |
+| **TC-PS-06** | `TestPositivePromptCatalog::test_referenced_tools_are_registered` | 1 | Every `query_*`, `define_*`, `update_*`, `set_*`, `restore_*`, `run_*` tool named in a prompt is a registered MCP tool. |
+| **TC-PS-07** | `TestPositivePromptCatalog::test_every_prompt_tool_has_positive_test` | 1 | Every registered tool named in a prompt is exercised by `test_sample_prompts_positive.py`. |
+| **TC-PS-08** | `TestPositivePromptCatalog::test_constraints_define_execution_safety` | 1 | Constraints state read-only, advisory, or confirmation-gated behavior. |
+| **TC-PS-09** | `TestNegativePromptCatalog::test_prompt_counts_per_persona` | 1 | Negative prompt counts per persona match NP-R01..NP-R08 (3, 2, 2, 2, 2, 2, 2, 3). |
+| **TC-PS-10** | `TestNegativePromptCatalog::test_prompt_structure_and_width` | 18 | Each negative prompt has all five sections in order and fits 100 characters including its 2-space indent. |
+| **TC-PS-11** | `TestNegativePromptCatalog::test_mapping_resolves_to_test` | 18 | Each `Test Mapping` in the negative catalog points to an existing class and method in `test_sample_prompts_negative.py`. |
 
 ---
 

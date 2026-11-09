@@ -7,8 +7,14 @@ Validates that the IBM Storage Protect MCP server constructs valid, compliant
 IBM Storage Protect commands and executes successfully when presented with
 authentic, well-formed operational prompts from docs/example/sample-prompts.md.
 
+Each catalog prompt is structured as Role / Context / Task / Constraints /
+Output Format. The Task section names the MCP tools to call; these tests drive
+those same tools directly. Prompt structure itself is validated by
+tests/test_sample_prompts_structure.py, which also fails if a tool named in a
+prompt has no test here.
+
 Includes two execution tiers:
-  - Part 1: Fast Mock Unit Verification (88 tests with FakeAdmcCli across all
+  - Part 1: Fast Mock Unit Verification (92 tests with FakeAdmcCli across all
     eight personas R-01..R-08 plus tool privilege tier validation).
   - Part 2: Live Integration Staging Verification (15 tests with real DsmAdmcWrapper
     marked @pytest.mark.integration, executed when SP host is configured).
@@ -37,7 +43,7 @@ import allure
 from tests.fixtures import FakeAdmcCli
 
 # ===========================================================================
-# PART 1: Fast Mock Unit Verification (FakeAdmcCli — 88 Tests)
+# PART 1: Fast Mock Unit Verification (FakeAdmcCli — 92 Tests)
 # ===========================================================================
 
 # ---------------------------------------------------------------------------
@@ -582,6 +588,16 @@ class TestR05PolicyAudit:
         assert "QUERY COPYGROUP" in cli.calls[0]
         assert "DOM_DATABASE" in cli.calls[0]
 
+    def test_query_retention_set(self):
+        """query_retention_set verifies retention hold enforcement for a set ID."""
+        from sp_mcp_server.commands.policies.copy import QueryRetentionSet
+
+        cli = _cli()
+        cmd = QueryRetentionSet(cli)  # type: ignore[arg-type]
+        cmd.execute({"retset_id": "17"})
+
+        assert cli.calls == ["QUERY RETSET 17"]
+
     def test_query_protection_policy(self):
         """query_protection_policy lists management classes for a domain."""
         from sp_mcp_server.commands.policies.mgmt import QueryProtectionPolicy
@@ -776,6 +792,16 @@ class TestR07ServiceEngineerDiagnostics:
         assert cli.calls == [["-standard"]]
         assert "SERVERMON DIAGNOSTIC COMPLETE" in result
 
+    def test_query_background_job(self):
+        """query_background_job checks in-progress migration jobs before upgrades."""
+        from sp_mcp_server.commands.operations.data_movement import QueryBackgroundJob
+
+        cli = _cli()
+        cmd = QueryBackgroundJob(cli)  # type: ignore[arg-type]
+        cmd.execute({})
+
+        assert cli.calls == ["QUERY PROCESS"]
+
     def test_query_activity_log_defect_anr0406e(self):
         """query_activity_log filters for defect message code ANR0406E."""
         from sp_mcp_server.commands.operations.misc import QueryActivityLog
@@ -855,6 +881,26 @@ class TestR08MultiServerReplication:
         cmd.execute({"node_name": "DBORA01_NODE"})
 
         assert "QUERY REPLICATION DBORA01_NODE" in cli.calls[0]
+
+    def test_query_replication_client_all_nodes(self):
+        """query_replication_client with node_name=* lists REPLSTATE for every node."""
+        from sp_mcp_server.commands.clients.node import QueryReplicationClient
+
+        cli = _cli()
+        cmd = QueryReplicationClient(cli)  # type: ignore[arg-type]
+        cmd.execute({"node_name": "*"})
+
+        assert cli.calls == ["QUERY REPLNODE *"]
+
+    def test_query_replication_client_single_node(self):
+        """query_replication_client scoped to one node and one target server."""
+        from sp_mcp_server.commands.clients.node import QueryReplicationClient
+
+        cli = _cli()
+        cmd = QueryReplicationClient(cli)  # type: ignore[arg-type]
+        cmd.execute({"node_name": "SAPHANA01_NODE", "target_server_name": "SPSVR02"})
+
+        assert cli.calls == ["QUERY REPLNODE SAPHANA01_NODE SPSVR02"]
 
     def test_query_protection_status(self):
         """query_protection_status verifies storage pool replication synchronization."""
